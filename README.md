@@ -4,4 +4,6 @@
 <h2 align="center">  
   A Guide to Fixing Common Git Mistakes
 </h2>
-<p> See the file git-shit</p>
+<p> 
+  See the file git-shit <a href="./gitshit">git-shit</a>
+</p>
