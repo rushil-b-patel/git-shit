@@ -117,7 +117,7 @@ git reset --hard upstream/master or main
 git push origin master/main --force 
 ```
 
-## Fuck this noise, I give up.
+## Fuck this, I give up.
 ```git
 cd ..
 sudo rm -r fucking-git-repo-dir
