@@ -108,6 +108,15 @@ git commit -m "Wow, you don't have to copy-paste to undo"
 ```
 When I finally figured this out it was HUGE. HUGE. H-U-G-E. But seriously though, on what fucking planet does `checkout --` make sense as the best way to undo a file? :shakes-fist-at-linus-torvalds:
 
+## Clean up a fork and restart it from the upstream
+```git
+git remote add upstream /url-to-main-repo
+git fetch upstream
+git checkout master or main
+git reset --hard upstream/master or main  
+git push origin master/main --force 
+```
+
 ## Fuck this noise, I give up.
 ```git
 cd ..
