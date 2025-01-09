@@ -5,138 +5,161 @@
   A Guide to Fixing Common Git Mistakes
 </h2>
 
- ## Oh shit, I did something terribly wrong, please tell me git has a magic time machine...!
+ ## Common QnA
 
-```git
-git reflog
-# you will see a list of every thing you've
-# done in git, across all branches!
-# each one has an index HEAD@{index}
-# find the one before you broke everything
-git reset HEAD@{index}
-# magic time machine
-```
-You can use this to get back stuff you accidentally deleted, or just to remove some stuff you tried that broke the repo, or to recover after a bad merge, or just to go back to a time when things actually worked. I use reflog A LOT. Mega hat tip to the many many many many many people who suggested adding it!
+<details>
+<summary>
+<em>How to Hard Sync local Master with Original Upstream</em>
+</summary>
 
-## Oh shit, I committed and immediately realized I need to make one small change...!
+Follow these steps in your main branch
+(upstream" is the original repository and "origin" is the fork one) :
+- ```sh
+  git checkout main
+  git pull upstream main
+  git reset --hard upstream/main
+  git push origin main --force
+  ```
+</details>
 
-```git
-# make your change
-git add . # or add individual files
-git commit --amend --no-edit
-# now your last commit contains that change!
-# WARNING: never amend public commits
-```
+<details>
+<summary>
+<em>Why the previous commits of another branch are showing in the new branch</em>
+</summary>
 
-This usually happens to me if I commit, then run tests/linters... and FML, I didn't put a space after an equals sign. You could also make the change as a new commit and then do rebase -i in order to squash them both together, but this is about a million times faster.
+Let's say you have this repository with branch 'prev_branch'
 
-*Warning: You should never amend commits that have been pushed up to a public/shared branch! Only amend commits that only exist in your local copy or you're gonna have a bad time.*
-
-## Oh shit, I need to change the message on my last commit...!
-```git
-git commit --amend
-# follow prompts to change the commit message
-```
-Stupid commit message formatting requirements.
-
-## Oh shit, I accidentally committed something to master that should have been on a brand new branch...!
-```git
-# create a new branch from the current state of master
-git branch some-new-branch-name
-# remove the last commit from the master branch
-git reset HEAD~ --hard
-git checkout some-new-branch-name
-# your commit lives in this branch now :)
-```
-Note: this doesn't work if you've already pushed the commit to a public/shared branch, and if you tried other things first, you might need to `git reset HEAD@{number-of-commits-back}` instead of `HEAD~`. Infinite sadness. Also, many many many people suggested an awesome way to make this shorter that I didn't know myself. Thank you all!
-
-## Oh shit, I accidentally committed to the wrong branch...!
-```git
-# undo the last commit, but leave the changes available
-git reset HEAD~ --soft
-git stash
-# move to the correct branch
-git checkout name-of-the-correct-branch
-git stash pop
-git add . # or add individual files
-git commit -m "your message here";
-# now your changes are on the correct branch
-```
-A lot of people have suggested using `cherry-pick` for this situation too, so take your pick on whatever one makes the most sense to you...!
-```git
-git checkout name-of-the-correct-branch
-# grab the last commit to master
-git cherry-pick master
-# delete it from master
-git checkout master
-git reset HEAD~ --hard
+```sh
+---o---o---A    prev_branch
 ```
 
-## Oh shit, I tried to run a diff but nothing happened...!
-If you know that you made changes to files, but `diff` is empty, you probably `add`-ed your files to staging and you need to use a special flag.
-```git
-git diff --staged
-```
-File under ¯\_(ツ)_/¯ (yes, I know this is a feature, not a bug, but it's fucking baffling and non-obvious the first time it happens to you!)
-## Oh shit, I need to undo a commit from like 5 commits ago...!
-```git
-# find the commit you need to undo
-git log
-# use the arrow keys to scroll up and down in history
-# once you've found your commit, save the hash
-git revert [saved hash]
-# git will create a new commit that undoes that commit
-# follow prompts to edit the commit message
-# or just save and commit
-``````git
-# find the commit you need to undo
-git log
-# use the arrow keys to scroll up and down in history
-# once you've found your commit, save the hash
-git revert [saved hash]
-# git will create a new commit that undoes that commit
-# follow prompts to edit the commit message
-# or just save and commit
-```
-Turns out you don't have to track down and copy-paste the old file contents into the existing file in order to undo changes! If you committed a bug, you can undo the commit all in one go with  `revert`.
+Let's say you commit something A in prev_branch and created new branch 'new_branch'1, 
+it won't differ until you start commiting to new branch 
 
-You can also revert a single file instead of a full commit! But of course, in true git fashion, it's a completely different set of fucking commands...
-
-## Oh shit, I need to undo my changes to a file...!
-```git
-# find a hash for a commit before the file was changed
-git log
-# use the arrow keys to scroll up and down in history
-# once you've found your commit, save the hash
-git checkout [saved hash] -- path/to/file
-# the old version of the file will be in your index
-git commit -m "Wow, you don't have to copy-paste to undo"
-```
-When I finally figured this out it was HUGE. HUGE. H-U-G-E. But seriously though, on what fucking planet does `checkout --` make sense as the best way to undo a file? :shakes-fist-at-linus-torvalds:
-
-## Clean up a fork and restart it from the upstream
-```git
-git remote add upstream /url-to-main-repo
-git fetch upstream
-git checkout master or main
-git reset --hard upstream/master or main  
-git push origin master/main --force 
+```sh
+---o---o---A    prev_branch + new_branch
 ```
 
-## Fuck this, I give up.
-```git
-cd ..
-sudo rm -r fucking-git-repo-dir
-git clone https://some.github.url/fucking-git-repo-dir.git
-cd fucking-git-repo-dir
+Then you commit B in newbranch 
+
+```sh
+---o---o---A      prev_branch
+            \
+             B    new_branch
 ```
-For real though, if your branch is sooo borked that you need to reset the state of your repo to be the same as the remote repo in a "git-approved" way, try this, but beware these are destructive and unrecoverable actions!
-```git
-# get the lastest state of origin
-git fetch origin
-git checkout master
-git reset --hard origin/master
-# delete untracked files and directories
-git clean -d --force
-# repeat checkout/reset/clean for each borked branch
+
+The new commit B has A as its parent commit. Now prev_branch and new_branch differ in some way.
+
+```sh
+---o---o---A---X---Y    prev_branch
+            \
+             B---Z      new_branch
 ```
+## Summary
+
+When you create a new branch from a particular branch, you'll start from the point where that branch currently is. So all commit history will be there in the new branch as well.</br>
+A good rule of thumb is to always create a new branch from the branch that you intend to eventually merge the new branch into (main branch). So if D is intended to be merged into main at some future point in time, create it from the current tip of main.
+
+For more details refer [blog](https://www.reddit.com/r/git/comments/l7epj0/why_does_my_new_branch_contain_commits_from/) / [blog](https://stackoverflow.com/questions/37010110/git-pushes-old-commit-in-different-branch-to-new-branch/78666984#78666984)
+
+Follow this while creating new branch and commiting changes:
+```sh
+- git checkout main/master
+- git branch -b new_branch
+- git add .
+- git commit -m "message"
+```
+
+</details>
+
+<details>
+<summary>
+<em>Edit a commit</em>
+</summary>
+
+
+1. Convenient way to modify the most recent commit
+   ```sh
+    # Edit src.js and main.js
+    git add src.js
+    git commit 
+    # Realize you forgot to add the changes from main.js 
+    git add main.js 
+    git commit --amend --no-edit
+   ```
+2. Using git reset
+   ```sh
+    git add .
+    git commit -m "This commit is a mistake"
+    git reset HEAD~
+    git add main.js
+    git commit -m "This commit corrects the mistake"
+    ```
+
+3. To undo the last two commits, use the commands:
+   ```sh
+   git add
+   git commit -m "This commit is a mistake"
+   # make changes to files
+   git add .
+   git commit -m "This commit is another mistake"
+   # want to go back to 2nd last commit to make changes
+   git reset HEAD~2
+   # make changes
+   git add .
+   git commit -m "this commit corrects both mistakes"
+   ```
+   for more info refer this [blog](https://sentry.io/answers/undo-the-most-recent-local-git-commits/)
+
+ 4. Change the last commit message
+    ```sh
+    # it will change the last commit's message
+    git commit --amend -m "New commit message" 
+    ```
+    ![git ammend showcase](https://github.com/rushil-b-patel/wanderlust/assets/96254453/4c5e73b1-e466-42b4-9053-d7044be4a50e)
+    for more info, watch this [video](https://www.youtube.com/watch?v=q53umU5vMkk)
+</details>
+
+
+<details>
+<summary>
+<em>To Check the commit Tree:</em>
+</summary>
+  
+  ```sh
+  #Run below to visualize the commit tree.
+  gitk 
+  git log show commit logs.
+  ```
+</details>
+
+<details>
+<summary>
+<em>Rebase</em>
+</summary>
+  
+  ```sh
+  #Fetch the latest changes
+  git fetch main
+  #Rebase onto the upstream branch
+  git rebase upstream/main`
+  ```
+</details>
+
+<details>
+<summary>
+<em>Good Practice</em>
+</summary>
+  
+  1. Avoid committing unnecessary files:
+
+     ```sh
+     #Avoid using which commits everything.
+     git commit -a
+     ```
+     
+  2. Use targeted commit commands:
+     ```sh
+     git add specific file
+     ```    
+</details>
